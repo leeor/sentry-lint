@@ -1,27 +1,24 @@
 {
   "name": "sentry-ale",
   "version": "0.1.0",
-  "sources": {
-    "dir": "src",
-    "subdirs" : true
-  },
-  "entries": [
+  "sources": [
     {
-      "backend": "bytecode",
-      "main-module": "SentryAle"
+      "dir": "src",
+      "subdirs" : true
     },
     {
-      "backend": "native",
-      "main-module": "SentryAle"
-    },
-    {
-      "backend": "js",
-      "main-module": "SentryAle"
+      "dir": "__tests__",
+      "subdirs" : true,
+      "type": "dev"
     }
   ],
+  "package-specs": {
+    "module": "commonjs"
+  },
   "bs-dependencies": [
     "bs-fetch",
-    "@glennsl/bs-json"
+    "@glennsl/bs-json",
+    "@glennsl/bs-jest"
   ],
   "refmt": 3
 }

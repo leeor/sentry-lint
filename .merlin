@@ -8,6 +8,10 @@ S /Users/leeor/src/sentry-ale/node_modules/bs-fetch/lib/ocaml
 B /Users/leeor/src/sentry-ale/node_modules/bs-fetch/lib/ocaml
 S /Users/leeor/src/sentry-ale/node_modules/@glennsl/bs-json/lib/ocaml
 B /Users/leeor/src/sentry-ale/node_modules/@glennsl/bs-json/lib/ocaml
+S /Users/leeor/src/sentry-ale/node_modules/@glennsl/bs-jest/lib/ocaml
+B /Users/leeor/src/sentry-ale/node_modules/@glennsl/bs-jest/lib/ocaml
+S __tests__
+B lib/bs/__tests__
 S src
 B lib/bs/src
 ####BSB GENERATED: NO EDIT}

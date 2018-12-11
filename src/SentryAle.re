@@ -30,12 +30,24 @@ let isMatchingFilename = (inputFile, filename) => {
   == 0;
 };
 
-let printFrame = frame =>
-  Frame.getContext(frame)
-  |> List.map(Frame.formatContextLine)
-  |> String.concat("\n");
+let formatContextLine = contextLine =>
+  Printf.sprintf(
+    format_of_string("% 5i | %s"),
+    fst(contextLine),
+    snd(contextLine),
+  );
 
-let formatEslintCompatibleMessage = (~filename=?, issue, event) => {
+let printContext = context =>
+  context |> List.map(formatContextLine) |> String.concat("\n");
+
+let rec range = (from, _to) =>
+  if (from <= _to) {
+    [from, ...range(from + 1, _to)];
+  } else {
+    [];
+  };
+
+let formatEslintCompatibleMessage = (~filename=?, fileContents, issue, event) => {
   let filename =
     switch (filename, Issues.getFilename(issue), Events.getFilename(event)) {
     | (Some(_), _, _) => filename
@@ -46,17 +58,22 @@ let formatEslintCompatibleMessage = (~filename=?, issue, event) => {
     | _ => None
     };
 
-  let lineNo =
+  let frame =
     switch (Events.getStacktrace(event)) {
     | Some(stacktrace) =>
-      stacktrace |> List.hd |> (frame => Frame.getLineNumber(frame))
+      Some(stacktrace |> List.hd |> Frame.fix(fileContents))
+    | None => None
+    };
+
+  let lineNo =
+    switch (frame) {
+    | Some(f) => Frame.getLineNumber(f)
     | None => None
     };
 
   let colNo =
-    switch (Events.getStacktrace(event)) {
-    | Some(stacktrace) =>
-      stacktrace |> List.hd |> (frame => Frame.getColumnNumber(frame))
+    switch (frame) {
+    | Some(f) => Frame.getColumnNumber(f)
     | None => None
     };
 
@@ -67,10 +84,16 @@ let formatEslintCompatibleMessage = (~filename=?, issue, event) => {
     ++ "]";
 
   let context =
-    switch (Events.getStacktrace(event)) {
-    | Some(stacktrace) =>
-      stacktrace |> List.hd |> (frame => printFrame(frame))
-    | None => ""
+    switch (lineNo) {
+    | Some(line) =>
+      let lineFrom = max(line - 5, 1);
+      let lineTo = min(fileContents |> Array.length, line + 5);
+
+      Array.sub(fileContents, lineFrom - 1, lineTo - lineFrom + 1)
+      |> Array.to_list
+      |> List.combine(range(lineFrom, lineTo))
+      |> printContext;
+    | _ => ""
     };
 
   switch (filename, lineNo, colNo) {
@@ -116,6 +139,9 @@ Arg.parse(
   "",
 );
 
+let fileContents =
+  Node.Fs.readFileSync("/dev/stdin", `ascii) |> Js.String.split("\n");
+
 open Js.Promise;
 
 Issues.fetchIssues(orgSlug^, projectSlug^, authToken^)
@@ -130,12 +156,14 @@ Issues.fetchIssues(orgSlug^, projectSlug^, authToken^)
                log(
                  formatEslintCompatibleMessage(
                    ~filename=fileName^,
+                   fileContents,
                    issue,
                    event,
                  ),
                )
                |> resolve
              )
+          |> catch(err => Js.log(err) |> resolve)
         )
      |> Array.of_list
      |> all
