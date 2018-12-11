@@ -1,7 +1,5 @@
 [%raw "require('isomorphic-fetch')"];
 
-[@bs.val] external log: string => unit = "console.log";
-
 type configType = {verbose: bool};
 
 let rec getAbsolutePathPart = filename =>
@@ -153,7 +151,7 @@ Issues.fetchIssues(orgSlug^, projectSlug^, authToken^)
      |> List.map(issue =>
           Events.fetchLatestEvent(Issues.getId(issue), authToken^)
           |> then_(event =>
-               log(
+               Js.log(
                  formatEslintCompatibleMessage(
                    ~filename=fileName^,
                    fileContents,
