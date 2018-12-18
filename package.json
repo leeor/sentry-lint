@@ -1,5 +1,5 @@
 {
-  "name": "sentry-ale",
+  "name": "sentry-lint",
   "version": "0.1.0",
   "scripts": {
     "clean": "bsb -clean-world",
@@ -12,7 +12,7 @@
   "keywords": [
     "BuckleScript",
     "sentry",
-    "ale"
+    "lint"
   ],
   "author": "",
   "license": "MIT",

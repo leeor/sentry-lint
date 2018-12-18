@@ -7,10 +7,10 @@ function! SentryGetCommand(buffer) abort
     let s:project = readfile(s:rc_file)[0]
 
     return 'node '
-          \ . s:script_folder_path . '/../lib/js/src/SentryAle.js'
-          \ . ' -org ' . g:sentry_ale_org
+          \ . s:script_folder_path . '/../lib/js/src/SentryLint.js'
+          \ . ' -org ' . g:sentry_lint_org
           \ . ' -project ' . s:project
-          \ . ' -token ' . g:sentry_ale_token
+          \ . ' -token ' . g:sentry_lint_token
           \ . ' %s'
   endif
 
