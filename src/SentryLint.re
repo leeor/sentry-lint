@@ -1,6 +1,16 @@
 [%raw "require('isomorphic-fetch')"];
+[@bs.module "os"] external homedir: unit => string = "homedir";
 
-type configType = {verbose: bool};
+type project = {
+  org: string,
+  token: string,
+};
+
+let decodeProject = json =>
+  Json.Decode.{
+    org: json |> field("org", string),
+    token: json |> field("token", string),
+  };
 
 let rec getAbsolutePathPart = filename =>
   if (filename.[0] == '.') {
@@ -110,26 +120,10 @@ let formatEslintCompatibleMessage = (~filename=?, fileContents, issue, event) =>
 };
 
 let fileName = ref("");
-let orgSlug = ref("");
 let projectSlug = ref("");
-let authToken = ref("");
-let config = ref({verbose: false});
 
 Arg.parse(
-  [
-    (
-      "-verbose",
-      Arg.Unit(() => config := {verbose: true}),
-      "verbose output",
-    ),
-    ("-org", Arg.String(slug => orgSlug := slug), "organisation slug"),
-    ("-project", Arg.String(slug => projectSlug := slug), "project slug"),
-    (
-      "-token",
-      Arg.String(token => authToken := token),
-      "authentication token",
-    ),
-  ],
+  [("-project", Arg.String(slug => projectSlug := slug), "project slug")],
   fName => {
     fileName := fName;
     ();
@@ -137,32 +131,43 @@ Arg.parse(
   "",
 );
 
+let config =
+  Node.Fs.readFileSync(homedir() ++ "/.sentrylint.json", `ascii)
+  |> Json.parseOrRaise
+  |> Json.Decode.dict(decodeProject);
+
 let fileContents =
   Node.Fs.readFileSync("/dev/stdin", `ascii) |> Js.String.split("\n");
 
 open Js.Promise;
 
-Issues.fetchIssues(orgSlug^, projectSlug^, authToken^)
-|> then_(issues =>
-     issues
-     |> List.filter(issue =>
-          issue |> Issues.getFilename |> isMatchingFilename(fileName^)
-        )
-     |> List.map(issue =>
-          Events.fetchLatestEvent(Issues.getId(issue), authToken^)
-          |> then_(event =>
-               Js.log(
-                 formatEslintCompatibleMessage(
-                   ~filename=fileName^,
-                   fileContents,
-                   issue,
-                   event,
-                 ),
+switch (Js.Dict.get(config, projectSlug^)) {
+| Some(projectConfig) =>
+  Issues.fetchIssues(projectConfig.org, projectSlug^, projectConfig.token)
+  |> then_(issues =>
+       issues
+       |> List.filter(issue =>
+            issue |> Issues.getFilename |> isMatchingFilename(fileName^)
+          )
+       |> List.map(issue =>
+            Events.fetchLatestEvent(Issues.getId(issue), projectConfig.token)
+            |> then_(event =>
+                 Js.log(
+                   formatEslintCompatibleMessage(
+                     ~filename=fileName^,
+                     fileContents,
+                     issue,
+                     event,
+                   ),
+                 )
+                 |> resolve
                )
-               |> resolve
-             )
-          |> catch(err => Js.log(err) |> resolve)
-        )
-     |> Array.of_list
-     |> all
-   );
+            |> catch(err => Js.log(err) |> resolve)
+          )
+       |> Array.of_list
+       |> all
+     )
+| _ =>
+  Js.log("Project " ++ projectSlug^ ++ " not found in config file");
+  resolve([] |> Array.of_list);
+};

@@ -8,9 +8,7 @@ function! SentryGetCommand(buffer) abort
 
     return 'node '
           \ . s:script_folder_path . '/../lib/js/src/SentryLint.js'
-          \ . ' -org ' . g:sentry_lint_org
           \ . ' -project ' . s:project
-          \ . ' -token ' . g:sentry_lint_token
           \ . ' %s'
   endif
 
